@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=6.4.2" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '6.4.2',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="前言Vue 2.0 在发布之初，就以其优秀的运行时性能著称，你可以通过这个第三方 benchmark 来对比其他框架的性能。Vue 使用了 Virtual DOM 来进行视图渲染，当数据变化时，Vue 会对比前后两棵组件树，只将必要的更新同步到视图上。 Vue 帮我们做了很多，但对于一些复杂场景，特别是大量的数据渲染，我们应当时刻关注应用的运行时性能。  本文仿照 Vue Cookbook 组织形">
+<meta name="keywords" content="Vue,Performance">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cookbook：优化 Vue 组件的运行时性能">
+<meta property="og:url" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/index.html">
+<meta property="og:site_name" content="Sun&#39;s BLOG">
+<meta property="og:description" content="前言Vue 2.0 在发布之初，就以其优秀的运行时性能著称，你可以通过这个第三方 benchmark 来对比其他框架的性能。Vue 使用了 Virtual DOM 来进行视图渲染，当数据变化时，Vue 会对比前后两棵组件树，只将必要的更新同步到视图上。 Vue 帮我们做了很多，但对于一些复杂场景，特别是大量的数据渲染，我们应当时刻关注应用的运行时性能。  本文仿照 Vue Cookbook 组织形">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/chrome-performance.png">
+<meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/render-cost.png">
+<meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/proxy-setter.png">
+<meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/no-proxy-setter.png">
+<meta property="og:updated_time" content="2018-10-21T11:08:39.845Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Cookbook：优化 Vue 组件的运行时性能">
+<meta name="twitter:description" content="前言Vue 2.0 在发布之初，就以其优秀的运行时性能著称，你可以通过这个第三方 benchmark 来对比其他框架的性能。Vue 使用了 Virtual DOM 来进行视图渲染，当数据变化时，Vue 会对比前后两棵组件树，只将必要的更新同步到视图上。 Vue 帮我们做了很多，但对于一些复杂场景，特别是大量的数据渲染，我们应当时刻关注应用的运行时性能。  本文仿照 Vue Cookbook 组织形">
+<meta name="twitter:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/chrome-performance.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/">
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Cookbook：优化 Vue 组件的运行时性能 | Sun's BLOG</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Sun's BLOG</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Sun">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sun's BLOG">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Cookbook：优化 Vue 组件的运行时性能
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-10-21 17:58:43 / 修改时间：19:08:39" itemprop="dateCreated datePublished" datetime="2018-10-21T17:58:43+08:00">2018-10-21</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Vue 2.0 在发布之初，就以其优秀的运行时性能著称，你可以通过这个<a href="https://www.stefankrause.net/js-frameworks-benchmark7/table.html" target="_blank" rel="noopener">第三方 benchmark</a> 来对比其他框架的性能。Vue 使用了 Virtual DOM 来进行视图渲染，当数据变化时，Vue 会对比前后两棵组件树，只将必要的更新同步到视图上。</p>
+<p>Vue 帮我们做了很多，但对于一些复杂场景，特别是大量的数据渲染，我们应当时刻关注应用的运行时性能。</p>
+<blockquote>
+<p>本文仿照 <a href="https://cn.vuejs.org/v2/cookbook" target="_blank" rel="noopener">Vue Cookbook</a> 组织形式，对优化 Vue 组件的运行时性能进行阐述。</p>
+</blockquote>
+<a id="more"></a>
+<h2 id="基本的示例"><a href="#基本的示例" class="headerlink" title="基本的示例"></a>基本的示例</h2><p>在下面的示例中，我们开发了一个树形控件，支持基本的树形结构展示以及节点的展开与折叠。</p>
+<p>我们定义 Tree 组件的接口如下。<code>data</code> 绑定了树形控件的数据，是若干颗树组成的数组，<code>children</code> 表示子节点。<code>expanded-keys</code> 绑定了展开的节点的 <code>key</code> 属性，使用 <code>sync</code> 修饰符来同步组件内部触发的节点展开状态的更新。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">template</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">tree</span> <span class="attr">:data</span>=<span class="string">"data"</span> <span class="attr">expanded-keys.sync</span>=<span class="string">"expandedKeys"</span>&gt;</span><span class="tag">&lt;/<span class="name">tree</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">template</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="undefined"></span></span><br><span class="line"><span class="undefined">export default &#123;</span></span><br><span class="line"><span class="undefined">  data() &#123;</span></span><br><span class="line"><span class="undefined">    return &#123;</span></span><br><span class="line"><span class="undefined">      data: [&#123;</span></span><br><span class="line"><span class="undefined">        key: '1',</span></span><br><span class="line"><span class="undefined">        label: '节点 1',</span></span><br><span class="line"><span class="undefined">        children: [&#123;</span></span><br><span class="line"><span class="undefined">          key: '1-1',</span></span><br><span class="line"><span class="undefined">          label: '节点 1-1'</span></span><br><span class="line"><span class="undefined">        &#125;]</span></span><br><span class="line"><span class="undefined">      &#125;, &#123;</span></span><br><span class="line"><span class="undefined">        key: '2',</span></span><br><span class="line"><span class="undefined">        label: '节点 2'</span></span><br><span class="line"><span class="undefined">      &#125;]</span></span><br><span class="line"><span class="undefined">    &#125;</span></span><br><span class="line"><span class="undefined">  &#125;</span></span><br><span class="line"><span class="undefined">&#125;;</span></span><br><span class="line"><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>Tree 组件的实现如下，这是个稍微复杂的例子，需要花几分钟时间阅读一下。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">template</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">ul</span> <span class="attr">class</span>=<span class="string">"tree"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">li</span></span></span><br><span class="line"><span class="tag">      <span class="attr">v-for</span>=<span class="string">"node in nodes"</span></span></span><br><span class="line"><span class="tag">      <span class="attr">v-show</span>=<span class="string">"status[node.key].visible"</span></span></span><br><span class="line"><span class="tag">      <span class="attr">:key</span>=<span class="string">"node.key"</span></span></span><br><span class="line"><span class="tag">      <span class="attr">class</span>=<span class="string">"tree-node"</span></span></span><br><span class="line"><span class="tag">      <span class="attr">:style</span>=<span class="string">"&#123; 'padding-left': `$&#123;node.level * 16&#125;px` &#125;"</span></span></span><br><span class="line"><span class="tag">    &gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">i</span></span></span><br><span class="line"><span class="tag">        <span class="attr">v-if</span>=<span class="string">"node.children"</span></span></span><br><span class="line"><span class="tag">        <span class="attr">class</span>=<span class="string">"tree-node-arrow"</span></span></span><br><span class="line"><span class="tag">        <span class="attr">:class</span>=<span class="string">"&#123; expanded: status[node.key].expanded &#125;"</span></span></span><br><span class="line"><span class="tag">        @<span class="attr">click</span>=<span class="string">"changeExpanded(node.key)"</span></span></span><br><span class="line"><span class="tag">      &gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">i</span>&gt;</span></span><br><span class="line">      &#123;&#123; node.label &#125;&#125;</span><br><span class="line">    <span class="tag">&lt;/<span class="name">li</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">ul</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">template</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="undefined"></span></span><br><span class="line"><span class="undefined">export default &#123;</span></span><br><span class="line"><span class="undefined">  props: &#123;</span></span><br><span class="line"><span class="undefined">    data: Array,</span></span><br><span class="line"><span class="undefined">    expandedKeys: &#123;</span></span><br><span class="line"><span class="undefined">      type: Array,</span></span><br><span class="line"><span class="undefined">      default: () =&gt; [],</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">  &#125;,</span></span><br><span class="line"><span class="undefined">  computed: &#123;</span></span><br><span class="line"><span class="undefined">    // 将 data 转为一维数组，方便 v-for 进行遍历</span></span><br><span class="line"><span class="undefined">    // 同时添加 level 和 parent 属性</span></span><br><span class="line"><span class="undefined">    nodes() &#123;</span></span><br><span class="line"><span class="undefined">      return this.getNodes(this.data);</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">    // status 是一个 key 和节点状态的一个 Map 数据结构</span></span><br><span class="line"><span class="undefined">    status() &#123;</span></span><br><span class="line"><span class="undefined">      return this.getStatus(this.nodes);</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">  &#125;,</span></span><br><span class="line"><span class="undefined">  methods: &#123;</span></span><br><span class="line"><span class="undefined">    // 对 data 进行递归，返回一个所有节点的一维数组</span></span><br><span class="line"><span class="undefined">    getNodes(data, level = 0, parent = null) &#123;</span></span><br><span class="line"><span class="undefined">      let nodes = [];</span></span><br><span class="line"><span class="undefined">      data.forEach((item) =&gt; &#123;</span></span><br><span class="line"><span class="undefined">        const node = &#123;</span></span><br><span class="line"><span class="undefined">          level,</span></span><br><span class="line"><span class="undefined">          parent,</span></span><br><span class="line"><span class="undefined">          ...item,</span></span><br><span class="line"><span class="undefined">        &#125;;</span></span><br><span class="line"><span class="undefined">        nodes.push(node);</span></span><br><span class="line"><span class="undefined">        if (item.children) &#123;</span></span><br><span class="line"><span class="undefined">          const children = this.getNodes(item.children, level + 1, node);</span></span><br><span class="line"><span class="undefined">          nodes = [...nodes, ...children];</span></span><br><span class="line"><span class="undefined">          node.children = children.filter(child =&gt; child.level === level + 1);</span></span><br><span class="line"><span class="undefined">        &#125;</span></span><br><span class="line"><span class="undefined">      &#125;);</span></span><br><span class="line"><span class="undefined">      return nodes;</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">    // 遍历 nodes，计算每个节点的状态</span></span><br><span class="line"><span class="undefined">    getStatus(nodes) &#123;</span></span><br><span class="line"><span class="undefined">      const status = &#123;&#125;;</span></span><br><span class="line"><span class="undefined">      nodes.forEach((node) =&gt; &#123;</span></span><br><span class="line"><span class="undefined">        const parentStatus = status[node.parent &amp;&amp; node.parent.key] || &#123;&#125;;</span></span><br><span class="line"><span class="undefined">        status[node.key] = &#123;</span></span><br><span class="line"><span class="undefined">          expanded: this.expandedKeys.includes(node.key),</span></span><br><span class="line"><span class="undefined">          visible: node.level === 0 || (parentStatus.expanded &amp;&amp; parentStatus.visible),</span></span><br><span class="line"><span class="undefined">        &#125;;</span></span><br><span class="line"><span class="undefined">      &#125;);</span></span><br><span class="line"><span class="undefined">      return status;</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">    // 切换节点的展开状态</span></span><br><span class="line"><span class="undefined">    changeExpanded(key) &#123;</span></span><br><span class="line"><span class="undefined">      const index = this.expandedKeys.indexOf(key);</span></span><br><span class="line"><span class="undefined">      const expandedKeys = [...this.expandedKeys];</span></span><br><span class="line"><span class="undefined">      if (index &gt;= 0) &#123;</span></span><br><span class="line"><span class="undefined">        expandedKeys.splice(index, 1);</span></span><br><span class="line"><span class="undefined">      &#125; else &#123;</span></span><br><span class="line"><span class="undefined">        expandedKeys.push(key);</span></span><br><span class="line"><span class="undefined">      &#125;</span></span><br><span class="line"><span class="undefined">      this.$emit('update:expandedKeys', expandedKeys);</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">  &#125;,</span></span><br><span class="line"><span class="undefined">&#125;;</span></span><br><span class="line"><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>展开或折叠节点时，我们只需更新 <code>expanded-keys</code>，<code>status</code> 计算属性便会自动更新，保证关联子节点可见状态的正确。</p>
+<p>一切准备就绪，为了度量 Tree 组件的运行性能，我们设定了两个指标。</p>
+<ol>
+<li>初次渲染时间</li>
+<li>节点展开 / 折叠时间</li>
+</ol>
+<p>在 Tree 组件中添加代码如下，使用 <code>console.time</code> 和 <code>console.timeEnd</code> 可以输出某个操作的具体耗时。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  methods: &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    changeExpanded(key) &#123;</span><br><span class="line">      <span class="comment">// ...</span></span><br><span class="line">      <span class="keyword">this</span>.$emit(<span class="string">'update:expandedKeys'</span>, expandedKeys);</span><br><span class="line"></span><br><span class="line">      <span class="built_in">console</span>.time(<span class="string">'expanded change'</span>);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">this</span>.$nextTick(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="built_in">console</span>.timeEnd(<span class="string">'expanded change'</span>);</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">  beforeCreate() &#123;</span><br><span class="line">    <span class="built_in">console</span>.time(<span class="string">'first rendering'</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">  mounted() &#123;</span><br><span class="line">    <span class="built_in">console</span>.timeEnd(<span class="string">'first rendering'</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>同时，为了放大可能存在的性能问题，我们编写了一个方法来生成可控数量的节点数据。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">template</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">tree</span> <span class="attr">:data</span>=<span class="string">"data"</span> <span class="attr">:expanded-keys.sync</span>=<span class="string">"expandedKeys"</span>&gt;</span><span class="tag">&lt;/<span class="name">tree</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">template</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="undefined"></span></span><br><span class="line"><span class="javascript"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span></span><br><span class="line"><span class="undefined">  data() &#123;</span></span><br><span class="line"><span class="javascript">    <span class="keyword">return</span> &#123;</span></span><br><span class="line"><span class="javascript">      <span class="comment">// 生成一个有 3 层，每层 10 个共 1000 个节点的节点树</span></span></span><br><span class="line"><span class="javascript">      data: <span class="keyword">this</span>.getRandomData(<span class="number">3</span>, <span class="number">10</span>),</span></span><br><span class="line"><span class="undefined">      expandedKeys: [],</span></span><br><span class="line"><span class="undefined">    &#125;;</span></span><br><span class="line"><span class="undefined">  &#125;,</span></span><br><span class="line"><span class="undefined">  methods: &#123;</span></span><br><span class="line"><span class="undefined">    getRandomData(layers, count, parent) &#123;</span></span><br><span class="line"><span class="javascript">      <span class="keyword">return</span> <span class="built_in">Array</span>.from(&#123; <span class="attr">length</span>: count &#125;, (v, i) =&gt; &#123;</span></span><br><span class="line"><span class="javascript">        <span class="keyword">const</span> key = (parent ? <span class="string">`<span class="subst">$&#123;parent.key&#125;</span>-`</span> : <span class="string">''</span>) + (i + <span class="number">1</span>);</span></span><br><span class="line"><span class="javascript">        <span class="keyword">const</span> node = &#123;</span></span><br><span class="line"><span class="undefined">          key,</span></span><br><span class="line"><span class="javascript">          label: <span class="string">`节点 <span class="subst">$&#123;key&#125;</span>`</span>,</span></span><br><span class="line"><span class="undefined">        &#125;;</span></span><br><span class="line"><span class="javascript">        <span class="keyword">if</span> (layers &gt; <span class="number">1</span>) &#123;</span></span><br><span class="line"><span class="javascript">          node.children = <span class="keyword">this</span>.getRandomData(layers - <span class="number">1</span>, count, node);</span></span><br><span class="line"><span class="undefined">        &#125;</span></span><br><span class="line"><span class="javascript">        <span class="keyword">return</span> node;</span></span><br><span class="line"><span class="undefined">      &#125;);</span></span><br><span class="line"><span class="undefined">    &#125;,</span></span><br><span class="line"><span class="undefined">  &#125;,</span></span><br><span class="line"><span class="undefined">&#125;;</span></span><br><span class="line"><span class="xml"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="undefined"></span></span></span><br></pre></td></tr></table></figure>
+<p>你可以通过这个 <a href="https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance" target="_blank" rel="noopener">CodeSandbox 完整示例</a>来实际观察下性能损耗。点击箭头展开或折叠某个节点，在 Chrome DevTools 的控制台（不要使用 CodeSandbox 的控制台，不准确）中输出如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">first rendering: 406.068115234375ms</span><br><span class="line">expanded change: 231.623779296875ms</span><br></pre></td></tr></table></figure>
+<p>在笔者的低功耗笔记本下，初次渲染耗时 400+ms，展开或折叠节点 200+ms。下面我们来优化 Tree 组件的运行性能。</p>
+<blockquote>
+<p>若你的设备性能强劲，可修改生成的节点数量，如 <code>this.getRandomData(4, 10)</code> 生成 10000 个节点。</p>
+</blockquote>
+<h2 id="使用-Chrome-Performance-查找性能瓶颈"><a href="#使用-Chrome-Performance-查找性能瓶颈" class="headerlink" title="使用 Chrome Performance 查找性能瓶颈"></a>使用 Chrome Performance 查找性能瓶颈</h2><p>Chrome 的 Performance 面板可以录制一段时间内的 js 执行细节及时间。使用 Chrome 开发者工具分析页面性能的步骤如下。</p>
+<ol>
+<li>打开 Chrome 开发者工具，切换到 Performance 面板</li>
+<li>点击 Record 开始录制</li>
+<li>刷新页面或展开某个节点</li>
+<li>点击 Stop 停止录制</li>
+</ol>
+<p><img src="chrome-performance.png" alt=""></p>
+<p><code>console.time</code> 输出的值也会显示在 Performance 中，帮助我们调试。更多关于 Performance 的内容可以<a href="https://developers.google.com/web/tools/chrome-devtools/" target="_blank" rel="noopener">点击这里查看</a>。</p>
+<h2 id="优化运行时性能"><a href="#优化运行时性能" class="headerlink" title="优化运行时性能"></a>优化运行时性能</h2><h3 id="条件渲染"><a href="#条件渲染" class="headerlink" title="条件渲染"></a>条件渲染</h3><p>我们往下翻阅 Performance 分析结果，发现大部分耗时都在 render 函数上，并且下面还有很多其他函数的调用。</p>
+<p><img src="render-cost.png" alt=""></p>
+<p>在遍历节点时，对于节点的可见性我们使用的是 <code>v-show</code> 指令，不可见的节点也会渲染出来，然后通过样式使其不可见。因此尝试使用 <code>v-if</code> 指令来进行条件渲染。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">li</span></span></span><br><span class="line"><span class="tag">  <span class="attr">v-for</span>=<span class="string">"node in nodes"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">v-if</span>=<span class="string">"status[node.key].visible"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">:key</span>=<span class="string">"node.key"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">class</span>=<span class="string">"tree-node"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">:style</span>=<span class="string">"&#123; 'padding-left': `$&#123;node.level * 16&#125;px` &#125;"</span></span></span><br><span class="line"><span class="tag">&gt;</span></span><br><span class="line">  ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">li</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>优化后的性能耗时如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">first rendering: 216.407958984375ms</span><br><span class="line">expanded change: 190.23974609375ms</span><br></pre></td></tr></table></figure>
+<p>你可以通过<a href="https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance" target="_blank" rel="noopener">改进后的示例 (Demo2)</a> 来观察组件的性能损耗，相比优化前有很大的提升。</p>
+<p>展开或折叠节点时，<code>v-if</code> 指令会导致频繁的组件创建和销毁，于是我尝试使用 <a href="https://cn.vuejs.org/v2/api/#keep-alive" target="_blank" rel="noopener"><code>&lt;keep-alive&gt;</code></a> 去给组件做缓存，但效果不是很明显。也许因为 <code>&lt;li&gt;</code> 的渲染太过简单。这里不再深究。</p>
+<h3 id="双向绑定"><a href="#双向绑定" class="headerlink" title="双向绑定"></a>双向绑定</h3><p>在前面的示例中，我们使用 <code>.sync</code> 对 <code>expanded-keys</code> 进行了“双向绑定”，其实际上是 prop 和自定义事件的语法糖。这种方式能很方便地让 Tree 的父组件同步展开状态的更新。</p>
+<p>但是，使用 Tree 组件时，不传 <code>expanded-keys</code>，会导致节点无法展开或折叠，即使你不关心展开或折叠的操作。这里把 <code>expanded-keys</code> 作为外界的副作用了。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 无法展开 / 折叠节点 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">tree</span> <span class="attr">:data</span>=<span class="string">"data"</span>&gt;</span><span class="tag">&lt;/<span class="name">tree</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>这里还存在一些性能问题，展开或折叠某一节点时，触发父组件的副作用更新 <code>expanded-keys</code>。Tree 组件的 <code>status</code> 依赖了 <code>expanded-keys</code>，会调用 <code>this.getStatus</code> 方法获取新的 <code>status</code>。即使只是单个节点的状态改变，也会导致重新计算所有节点的状态。</p>
+<p>我们考虑将 <code>status</code> 作为一个 Tree 组件的内部状态，展开或折叠某个节点时，直接对 <code>status</code> 进行修改。同时定义默认的展开节点 <code>default-expanded-keys</code>。<code>status</code> 只在初始化时依赖 <code>default-expanded-keys</code>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">  props: &#123;</span><br><span class="line">    data: <span class="built_in">Array</span>,</span><br><span class="line">    <span class="comment">// 默认展开节点</span></span><br><span class="line">    defaultExpandedKeys: &#123;</span><br><span class="line">      type: <span class="built_in">Array</span>,</span><br><span class="line">      <span class="keyword">default</span>: <span class="function"><span class="params">()</span> =&gt;</span> [],</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">  data() &#123;</span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">      status: <span class="literal">null</span>, <span class="comment">// status 为局部状态</span></span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;,</span><br><span class="line">  computed: &#123;</span><br><span class="line">    nodes() &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">this</span>.getNodes(<span class="keyword">this</span>.data);</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">  watch: &#123;</span><br><span class="line">    nodes: &#123;</span><br><span class="line">      <span class="comment">// nodes 改变时重新计算 status</span></span><br><span class="line">      handler() &#123;</span><br><span class="line">        <span class="keyword">this</span>.status = <span class="keyword">this</span>.getStatus(<span class="keyword">this</span>.nodes);</span><br><span class="line">      &#125;,</span><br><span class="line">      <span class="comment">// 初始化 status</span></span><br><span class="line">      immediate: <span class="literal">true</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="comment">// defaultExpandedKeys 改变时重新计算 status</span></span><br><span class="line">    defaultExpandedKeys() &#123;</span><br><span class="line">      <span class="keyword">this</span>.status = <span class="keyword">this</span>.getStatus(<span class="keyword">this</span>.nodes);</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">  methods: &#123;</span><br><span class="line">    getNodes(data, level = <span class="number">0</span>, parent = <span class="literal">null</span>) &#123;</span><br><span class="line">      <span class="comment">// ...</span></span><br><span class="line">    &#125;,</span><br><span class="line">    getStatus(nodes) &#123;</span><br><span class="line">      <span class="comment">// ...</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="comment">// 展开或折叠节点时直接修改 status，并通知父组件</span></span><br><span class="line">    changeExpanded(key) &#123;</span><br><span class="line">      <span class="built_in">console</span>.time(<span class="string">'expanded change'</span>);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">const</span> node = <span class="keyword">this</span>.nodes.find(<span class="function"><span class="params">n</span> =&gt;</span> n.key === key); <span class="comment">// 找到该节点</span></span><br><span class="line">      <span class="keyword">const</span> newExpanded = !<span class="keyword">this</span>.status[key].expanded; <span class="comment">// 新的展开状态</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">// 递归该节点的后代节点，更新 status</span></span><br><span class="line">      <span class="keyword">const</span> updateVisible = <span class="function">(<span class="params">n, visible</span>) =&gt;</span> &#123;</span><br><span class="line">        n.children.forEach(<span class="function">(<span class="params">child</span>) =&gt;</span> &#123;</span><br><span class="line">          <span class="keyword">this</span>.status[child.key].visible = visible &amp;&amp; <span class="keyword">this</span>.status[n.key].expanded;</span><br><span class="line">          <span class="keyword">if</span> (child.children) updateVisible(child, visible);</span><br><span class="line">        &#125;);</span><br><span class="line">      &#125;;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">this</span>.status[key].expanded = newExpanded;</span><br><span class="line"></span><br><span class="line">      updateVisible(node, newExpanded);</span><br><span class="line"></span><br><span class="line">      <span class="comment">// 触发节点展开状态改变事件</span></span><br><span class="line">      <span class="keyword">this</span>.$emit(<span class="string">'expanded-change'</span>, node, newExpanded, <span class="keyword">this</span>.nodes.filter(<span class="function"><span class="params">n</span> =&gt;</span> <span class="keyword">this</span>.status[n.key].expanded));</span><br><span class="line"></span><br><span class="line">      <span class="keyword">this</span>.$nextTick(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="built_in">console</span>.timeEnd(<span class="string">'expanded change'</span>);</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;,</span><br><span class="line">  beforeCreate() &#123;</span><br><span class="line">    <span class="built_in">console</span>.time(<span class="string">'first rendering'</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">  mounted() &#123;</span><br><span class="line">    <span class="built_in">console</span>.timeEnd(<span class="string">'first rendering'</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>使用 Tree 组件时，即使不传 <code>default-expanded-keys</code>，节点也能正常地展开或收起。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 节点可以展开或收起 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">tree</span> <span class="attr">:data</span>=<span class="string">"data"</span>&gt;</span><span class="tag">&lt;/<span class="name">tree</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- 配置默认展开的节点 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">tree</span></span></span><br><span class="line"><span class="tag">  <span class="attr">:data</span>=<span class="string">"data"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">:default-expanded-keys</span>=<span class="string">"['1', '1-1']"</span></span></span><br><span class="line"><span class="tag">  @<span class="attr">expanded-change</span>=<span class="string">"handleExpandedChange"</span></span></span><br><span class="line"><span class="tag">&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">tree</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>优化后的性能耗时如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">first rendering: 91.48193359375ms</span><br><span class="line">expanded change: 20.4287109375ms</span><br></pre></td></tr></table></figure>
+<p>你可以通过<a href="https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance" target="_blank" rel="noopener">改进后的示例 (Demo3)</a> 来观察组件的性能损耗。</p>
+<h3 id="冻结数据"><a href="#冻结数据" class="headerlink" title="冻结数据"></a>冻结数据</h3><p>到此为止，Tree 组件的性能问题已经不是很明显了。为了进一步扩大性能问题，查找优化空间。我们把节点数量增加到 10000 个。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 生成 10000 个节点</span></span><br><span class="line"><span class="keyword">this</span>.getRandomData(<span class="number">4</span>, <span class="number">1000</span>)</span><br></pre></td></tr></table></figure>
+<p>这里，我们故意制造一个可能存在性能问题的改动。虽然这不是必须的，当它能帮助我们了解接下来所要介绍的问题。</p>
+<p>将计算属性 <code>nodes</code> 修改为在 <code>data</code> 的 <code>watcher</code> 中去获取 <code>nodes</code> 的值。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  watch: &#123;</span><br><span class="line">    data: &#123;</span><br><span class="line">      handler() &#123;</span><br><span class="line">        <span class="keyword">this</span>.nodes = <span class="keyword">this</span>.getNodes(<span class="keyword">this</span>.data);</span><br><span class="line">        <span class="keyword">this</span>.status = <span class="keyword">this</span>.getStatus(<span class="keyword">this</span>.nodes);</span><br><span class="line">      &#125;,</span><br><span class="line">      immediate: <span class="literal">true</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这种修改对于实现的功能是没有影响的，那么性能情况如何呢。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">first rendering: 490.119140625ms</span><br><span class="line">expanded change: 183.94189453125ms</span><br></pre></td></tr></table></figure>
+<p>使用 Performance 工具尝试查找性能瓶颈。</p>
+<p><img src="proxy-setter.png" alt=""></p>
+<p>我们发现，在 <code>getNodes</code> 方法调用之后，有一段耗时很长的 <code>proxySetter</code>。这是 Vue 在为 <code>nodes</code> 属性添加响应式，让 Vue 能够追踪依赖的变化。<code>getStatus</code> 同理。</p>
+<blockquote>
+<p>当你把一个普通的 JavaScript 对象传给 Vue 实例的 <code>data</code> 选项，Vue 将遍历此对象所有的属性，并使用 Object.defineProperty 把这些属性全部转为 getter/setter。</p>
+</blockquote>
+<p>对象越复杂，层级越深，这个过程消耗的时间越长。当我们存在 1w 个节点时，<code>proxySetter</code> 的时间就会非常长了。</p>
+<p>这里存在一个问题，我们不会对 <code>nodes</code> 某个具体的属性做修改，而是每当 <code>data</code> 变化时重新去计算一次。因此，这里为 <code>nodes</code> 添加的响应式是无用的。那么怎么把不需要的 <code>proxySetter</code> 去掉呢？一种方法是将 <code>nodes</code> 改回计算属性，一般情况下计算属性没有赋值行为。另一种方法就是冻结数据。</p>
+<p>使用 <code>Object.freeze()</code> 来冻结数据，这会阻止修改现有的属性，也意味着响应系统无法再追踪变化。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.nodes = <span class="built_in">Object</span>.freeze(<span class="keyword">this</span>.getNodes(<span class="keyword">this</span>.data));</span><br></pre></td></tr></table></figure>
+<p>查看 Performance 工具，<code>getNodes</code> 方法后已经没有 <code>proxySetter</code> 了。</p>
+<p><img src="no-proxy-setter.png" alt=""></p>
+<p>性能指标如下，对于初次渲染的提升还是很可观的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">first rendering: 312.22998046875ms</span><br><span class="line">expanded change: 179.59326171875ms</span><br></pre></td></tr></table></figure>
+<p>你可以通过<a href="https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance" target="_blank" rel="noopener">改进后的示例 (Demo4)</a> 来观察组件的性能损耗。</p>
+<p>那我们能否用同样的办法优化 <code>status</code> 的跟踪呢？答案是否定的，因为我们需要去更新 <code>status</code> 中的属性值 (<code>changeExpanded</code>)。因此，这种优化只适用于其属性不会被更新，只会更新整个对象的数据。且对于结构越复杂、层级越深的数据，优化效果越明显。</p>
+<h2 id="替代方案"><a href="#替代方案" class="headerlink" title="替代方案"></a>替代方案</h2><p>我们看到，示例中不管是节点的渲染还是数据的计算，都存在大量的循环或递归。对于这种大量数据的问题，除了上述提到的针对 Vue 的优化外，我们还可以从减少每次循环的耗时和减少循环次数两个方面进行优化。</p>
+<p>可以使用字典来优化数据查找。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 生成 defaultExpandedKeys 的 Map 对象</span></span><br><span class="line"><span class="keyword">const</span> expandedKeysMap = <span class="keyword">this</span>.defaultExpandedKeys.reduce(<span class="function">(<span class="params">map, key</span>) =&gt;</span> &#123;</span><br><span class="line">  map[key] = <span class="literal">true</span>;</span><br><span class="line">  <span class="keyword">return</span> map;</span><br><span class="line">&#125;, &#123;&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查找时</span></span><br><span class="line"><span class="keyword">if</span> (expandedKeysMap[key]) &#123;</span><br><span class="line">  <span class="comment">// do something</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>defaultExpandedKeys.includes</code> 的事件复杂度是 O(n)，<code>expandedKeysMap[key]</code> 的时间复杂度是 O(1)。</p>
+<p>默认折叠的树，我们</p>
+<h2 id="这样做的价值"><a href="#这样做的价值" class="headerlink" title="这样做的价值"></a>这样做的价值</h2><p>应用性能对于用户体验的提升是非常重要的，也往往是容易被忽视的。试想一下，一个在某台设备运行良好的应用，到了另一台配置较差的设备上导致用户浏览器崩溃了，这一定是一个不好的体验。又或者你的应用在常规数据下正常运行，却在大数据量下需要相当长的等待时间，也许你就因此错失了一部分用户。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>性能优化是一个长久不衰的话题，没有一种通用的办法能够解决所有的性能问题。性能优化是可以持续不端地进行下去的，但随着问题的深入，性能瓶颈会越来越不明显，优化也越困难。</p>
+<p>本文的示例具有一定的特殊性，但它为我们指引了性能优化的方法论。</p>
+<ol>
+<li>确定衡量运行时性能的指标</li>
+<li>确定优化目标，例如实现 1W+ 数据的秒出</li>
+<li>使用工具（Chrome Performance）分析性能问题</li>
+<li>优先解决问题的大头（瓶颈）</li>
+<li>重复 3 4 步直到实现目标</li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Vue/" rel="tag"># Vue</a>
+          
+            <a href="/tags/Performance/" rel="tag"># Performance</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/10/20/hello-world/" rel="next" title="Hello World">
+                <i class="fa fa-chevron-left"></i> Hello World
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Sun</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">标签</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基本的示例"><span class="nav-number">2.</span> <span class="nav-text">基本的示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用-Chrome-Performance-查找性能瓶颈"><span class="nav-number">3.</span> <span class="nav-text">使用 Chrome Performance 查找性能瓶颈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#优化运行时性能"><span class="nav-number">4.</span> <span class="nav-text">优化运行时性能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#条件渲染"><span class="nav-number">4.1.</span> <span class="nav-text">条件渲染</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#双向绑定"><span class="nav-number">4.2.</span> <span class="nav-text">双向绑定</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#冻结数据"><span class="nav-number">4.3.</span> <span class="nav-text">冻结数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#替代方案"><span class="nav-number">5.</span> <span class="nav-text">替代方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#这样做的价值"><span class="nav-number">6.</span> <span class="nav-text">这样做的价值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Sun</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Mist</a> v6.4.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+	
+    
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.4.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.4.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.4.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.4.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.4.2"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
