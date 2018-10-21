@@ -455,7 +455,7 @@ expanded change: 179.59326171875ms
 
 我们看到，示例中不管是节点的渲染还是数据的计算，都存在大量的循环或递归。对于这种大量数据的问题，除了上述提到的针对 Vue 的优化外，我们还可以从减少每次循环的耗时和减少循环次数两个方面进行优化。
 
-可以使用字典来优化数据查找。
+例如，可以使用字典来优化数据查找。
 
 ```js
 // 生成 defaultExpandedKeys 的 Map 对象
@@ -472,7 +472,9 @@ if (expandedKeysMap[key]) {
 
 `defaultExpandedKeys.includes` 的事件复杂度是 O(n)，`expandedKeysMap[key]` 的时间复杂度是 O(1)。
 
-默认折叠的树，我们
+默认折叠的树，我们还可以让 `getNodes` 只返回可见节点，减少 v-if 判断次数。
+
+更多关于优化 Vue 应用性能可以查看 [Vue 应用性能优化指南](https://juejin.im/post/5b960fcae51d450e9d645c5f)。
 
 ## 这样做的价值
 
