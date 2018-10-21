@@ -116,7 +116,7 @@
 <meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/render-cost.png">
 <meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/proxy-setter.png">
 <meta property="og:image" content="http://yoursite.com/2018/10/21/Improve-Vue-Runtime-Performance/no-proxy-setter.png">
-<meta property="og:updated_time" content="2018-10-21T11:08:39.845Z">
+<meta property="og:updated_time" content="2018-10-21T15:22:28.056Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Cookbook：优化 Vue 组件的运行时性能">
 <meta name="twitter:description" content="前言Vue 2.0 在发布之初，就以其优秀的运行时性能著称，你可以通过这个第三方 benchmark 来对比其他框架的性能。Vue 使用了 Virtual DOM 来进行视图渲染，当数据变化时，Vue 会对比前后两棵组件树，只将必要的更新同步到视图上。 Vue 帮我们做了很多，但对于一些复杂场景，特别是大量的数据渲染，我们应当时刻关注应用的运行时性能。  本文仿照 Vue Cookbook 组织形">
@@ -324,7 +324,7 @@
                 
               
 
-              <time title="创建时间：2018-10-21 17:58:43 / 修改时间：19:08:39" itemprop="dateCreated datePublished" datetime="2018-10-21T17:58:43+08:00">2018-10-21</time>
+              <time title="创建时间：2018-10-21 17:58:43 / 修改时间：23:22:28" itemprop="dateCreated datePublished" datetime="2018-10-21T17:58:43+08:00">2018-10-21</time>
             
 
             
@@ -441,10 +441,11 @@
 <p>你可以通过<a href="https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance" target="_blank" rel="noopener">改进后的示例 (Demo4)</a> 来观察组件的性能损耗。</p>
 <p>那我们能否用同样的办法优化 <code>status</code> 的跟踪呢？答案是否定的，因为我们需要去更新 <code>status</code> 中的属性值 (<code>changeExpanded</code>)。因此，这种优化只适用于其属性不会被更新，只会更新整个对象的数据。且对于结构越复杂、层级越深的数据，优化效果越明显。</p>
 <h2 id="替代方案"><a href="#替代方案" class="headerlink" title="替代方案"></a>替代方案</h2><p>我们看到，示例中不管是节点的渲染还是数据的计算，都存在大量的循环或递归。对于这种大量数据的问题，除了上述提到的针对 Vue 的优化外，我们还可以从减少每次循环的耗时和减少循环次数两个方面进行优化。</p>
-<p>可以使用字典来优化数据查找。</p>
+<p>例如，可以使用字典来优化数据查找。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 生成 defaultExpandedKeys 的 Map 对象</span></span><br><span class="line"><span class="keyword">const</span> expandedKeysMap = <span class="keyword">this</span>.defaultExpandedKeys.reduce(<span class="function">(<span class="params">map, key</span>) =&gt;</span> &#123;</span><br><span class="line">  map[key] = <span class="literal">true</span>;</span><br><span class="line">  <span class="keyword">return</span> map;</span><br><span class="line">&#125;, &#123;&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查找时</span></span><br><span class="line"><span class="keyword">if</span> (expandedKeysMap[key]) &#123;</span><br><span class="line">  <span class="comment">// do something</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p><code>defaultExpandedKeys.includes</code> 的事件复杂度是 O(n)，<code>expandedKeysMap[key]</code> 的时间复杂度是 O(1)。</p>
-<p>默认折叠的树，我们</p>
+<p>默认折叠的树，我们还可以让 <code>getNodes</code> 只返回可见节点，减少 v-if 判断次数。</p>
+<p>更多关于优化 Vue 应用性能可以查看 <a href="https://juejin.im/post/5b960fcae51d450e9d645c5f" target="_blank" rel="noopener">Vue 应用性能优化指南</a>。</p>
 <h2 id="这样做的价值"><a href="#这样做的价值" class="headerlink" title="这样做的价值"></a>这样做的价值</h2><p>应用性能对于用户体验的提升是非常重要的，也往往是容易被忽视的。试想一下，一个在某台设备运行良好的应用，到了另一台配置较差的设备上导致用户浏览器崩溃了，这一定是一个不好的体验。又或者你的应用在常规数据下正常运行，却在大数据量下需要相当长的等待时间，也许你就因此错失了一部分用户。</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>性能优化是一个长久不衰的话题，没有一种通用的办法能够解决所有的性能问题。性能优化是可以持续不端地进行下去的，但随着问题的深入，性能瓶颈会越来越不明显，优化也越困难。</p>
 <p>本文的示例具有一定的特殊性，但它为我们指引了性能优化的方法论。</p>
@@ -490,8 +491,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2018/10/20/hello-world/" rel="next" title="Hello World">
-                <i class="fa fa-chevron-left"></i> Hello World
+              <a href="/2017/10/13/Spa-Prerender-Guide/" rel="next" title="优化向：单页应用多路由预渲染指南">
+                <i class="fa fa-chevron-left"></i> 优化向：单页应用多路由预渲染指南
               </a>
             
           </div>
@@ -587,7 +588,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">2</span>
+                      
+                    
+                    <span class="site-state-item-count">3</span>
                     <span class="site-state-item-name">标签</span>
                   
                 </div>

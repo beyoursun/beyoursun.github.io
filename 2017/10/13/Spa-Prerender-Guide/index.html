@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=6.4.2" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '6.4.2',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="前言Ajax 技术的出现，让我们的 Web 应用能够在不刷新的状态下显示不同页面的内容，这就是单页应用。在一个单页应用中，往往只有一个 html 文件，然后根据访问的 url 来匹配对应的路由脚本，动态地渲染页面内容。单页应用在优化了用户体验的同时，也给我们带来了许多问题，例如 SEO 不友好、首屏可见时间过长等。服务端渲染（SSR）和预渲染（Prerender）技术正是为解决这些问题而生的。 阅">
+<meta name="keywords" content="Prerender">
+<meta property="og:type" content="article">
+<meta property="og:title" content="优化向：单页应用多路由预渲染指南">
+<meta property="og:url" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/index.html">
+<meta property="og:site_name" content="Sun&#39;s BLOG">
+<meta property="og:description" content="前言Ajax 技术的出现，让我们的 Web 应用能够在不刷新的状态下显示不同页面的内容，这就是单页应用。在一个单页应用中，往往只有一个 html 文件，然后根据访问的 url 来匹配对应的路由脚本，动态地渲染页面内容。单页应用在优化了用户体验的同时，也给我们带来了许多问题，例如 SEO 不友好、首屏可见时间过长等。服务端渲染（SSR）和预渲染（Prerender）技术正是为解决这些问题而生的。 阅">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/process.jpg">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/example.jpg">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/network.jpg">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/prerender-network.jpg">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/principle.jpg">
+<meta property="og:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/skeleton.jpg">
+<meta property="og:updated_time" content="2018-10-21T16:02:57.688Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="优化向：单页应用多路由预渲染指南">
+<meta name="twitter:description" content="前言Ajax 技术的出现，让我们的 Web 应用能够在不刷新的状态下显示不同页面的内容，这就是单页应用。在一个单页应用中，往往只有一个 html 文件，然后根据访问的 url 来匹配对应的路由脚本，动态地渲染页面内容。单页应用在优化了用户体验的同时，也给我们带来了许多问题，例如 SEO 不友好、首屏可见时间过长等。服务端渲染（SSR）和预渲染（Prerender）技术正是为解决这些问题而生的。 阅">
+<meta name="twitter:image" content="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/process.jpg">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/">
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>优化向：单页应用多路由预渲染指南 | Sun's BLOG</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Sun's BLOG</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/13/Spa-Prerender-Guide/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Sun">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sun's BLOG">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">优化向：单页应用多路由预渲染指南
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-10-13 23:47:41" itemprop="dateCreated datePublished" datetime="2017-10-13T23:47:41+08:00">2017-10-13</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-10-22 00:02:57" itemprop="dateModified" datetime="2018-10-22T00:02:57+08:00">2018-10-22</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Ajax 技术的出现，让我们的 Web 应用能够在不刷新的状态下显示不同页面的内容，这就是单页应用。在一个单页应用中，往往只有一个 html 文件，然后根据访问的 url 来匹配对应的路由脚本，动态地渲染页面内容。单页应用在优化了用户体验的同时，也给我们带来了许多问题，例如 SEO 不友好、首屏可见时间过长等。服务端渲染（SSR）和预渲染（Prerender）技术正是为解决这些问题而生的。</p>
+<p>阅读本文，你能够了解到<strong>什么是预渲染</strong>、预渲染与服务端渲染的<strong>异同</strong>以及预渲染在 <strong>Vue.js 项目中的使用</strong>。</p>
+<a id="more"></a>
+<h2 id="服务端渲染与预渲染"><a href="#服务端渲染与预渲染" class="headerlink" title="服务端渲染与预渲染"></a>服务端渲染与预渲染</h2><h3 id="一些概念"><a href="#一些概念" class="headerlink" title="一些概念"></a>一些概念</h3><ol>
+<li><strong>客户端渲染</strong>：用户访问 url，请求 html 文件，前端根据路由动态渲染页面内容。关键链路较长，有一定的白屏时间；</li>
+<li><strong>服务端渲染</strong>：用户访问 url，服务端根据访问路径请求所需数据，拼接成 html 字符串，返回给前端。前端接收到 html 时已有部分内容；</li>
+<li><strong>预渲染</strong>：构建阶段生成匹配预渲染路径的 html 文件（注意：每个需要预渲染的路由都有一个对应的 html）。构建出来的 html 文件已有部分内容。</li>
+</ol>
+<p>下图简单展示了客户端渲染、服务端渲染和预渲染的请求流程。</p>
+<p><img src="process.jpg" alt=""></p>
+<p>本文示例使用 vue-cli 生成，点击<a href="https://github.com/beyoursun/vue-prerender-demo" target="_blank" rel="noopener">这里</a>查看示例。<code>dist</code> 目录是启用了预渲染的打包目录，<code>dist2</code> 目录则是普通客户端渲染的打包目录。通过对比目录中的文件，你可以对预渲染有个初步的了解。若你还是不知道什么是预渲染，不妨先通读全文。</p>
+<h3 id="共同点"><a href="#共同点" class="headerlink" title="共同点"></a>共同点</h3><p>针对单页应用，服务端渲染和预渲染共同解决的问题：</p>
+<ol>
+<li><strong>SEO</strong>：单页应用的网站内容是根据当前路径动态渲染的，html 文件中往往没有内容，网络爬虫不会等到页面脚本执行完再抓取；</li>
+<li><strong>弱网环境</strong>：当用户在一个弱环境中访问你的站点时，你会想要尽可能快的将内容呈现给他们。甚至是在 js 脚本被加载和解析前；</li>
+<li><strong>低版本浏览器</strong>：用户的浏览器可能不支持你使用的 js 特性，预渲染或服务端渲染能够让用户至少能够看到首屏的内容，而不是一个空白的网页。</li>
+</ol>
+<p>预渲染能与服务端渲染一样提高 SEO 优化，但前者比后者需要更少的配置，实现成本低。弱网环境下，预渲染能更快地呈现页面内容，减少页面可见时间。</p>
+<h3 id="不适合的场景"><a href="#不适合的场景" class="headerlink" title="不适合的场景"></a>不适合的场景</h3><p>那什么场景下不适合使用预渲染呢：</p>
+<ol>
+<li><strong>个性化内容</strong>：对于路由是 /my-profile 的页面来说，预渲染就失效了。因为页面内容依据看它的人而显得不同；</li>
+<li><strong>经常变化的内容</strong>：如果你预渲染一个游戏排行榜，这个排行榜会随着新的玩家记录而更新，预渲染会让你的页面显示不正确直到脚本加载完成并替换成新的数据。这是一个不好的用户体验；</li>
+<li><strong>成千上万的路由</strong>：不建议预渲染非常多的路由，因为这会严重拖慢你的构建进程。</li>
+</ol>
+<h2 id="Prerender-SPA-Plugin"><a href="#Prerender-SPA-Plugin" class="headerlink" title="Prerender SPA Plugin"></a>Prerender SPA Plugin</h2><p><a href="https://github.com/chrisvfritz/prerender-spa-plugin" target="_blank" rel="noopener">prerender-spa-plugin</a> 是一个 webpack 插件用于在单页应用中预渲染静态 html 内容。因此，该插件限定了你的单页应用必须使用 webpack 构建，且它是框架无关的，无论你是使用 React 或 Vue 甚至不使用框架，都能用来进行预渲染。<a href="https://github.com/beyoursun/vue-prerender-demo" target="_blank" rel="noopener">本文示例</a>基于 Vue.js 2.0 + vue-router。</p>
+<p>下文会从<strong>生成项目</strong>讲起，然后看下<strong>没有配置预渲染</strong>前的样子，再配置预渲染进行构建，对比<strong>前后的差别</strong>。</p>
+<h3 id="生成项目"><a href="#生成项目" class="headerlink" title="生成项目"></a>生成项目</h3><p>首先生成一个项目并安装依赖。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vue init webpack vue-prerender-demo</span><br><span class="line"><span class="built_in">cd</span> vue-prerender-demo &amp;&amp; npm install</span><br></pre></td></tr></table></figure>
+<p>组件开发过程我们不关注，具体可以查看示例源代码。开发完成视图如下。</p>
+<p><img src="example.jpg" alt=""></p>
+<h3 id="路由配置"><a href="#路由配置" class="headerlink" title="路由配置"></a>路由配置</h3><p>这是一个新闻应用的页面，包括了最新、最热两个列表页和一个文章页。路由配置如下。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> Router(&#123; </span><br><span class="line">  mode: <span class="string">'history'</span>,</span><br><span class="line">  routes: [</span><br><span class="line">    &#123;</span><br><span class="line">      path: <span class="string">'/'</span>,</span><br><span class="line">      component: Home,</span><br><span class="line">      children: [</span><br><span class="line">        &#123;</span><br><span class="line">          path: <span class="string">'new'</span>,</span><br><span class="line">          alias: <span class="string">'/'</span>,</span><br><span class="line">          component: <span class="function"><span class="params">()</span> =&gt;</span> <span class="keyword">import</span>(<span class="string">'@/components/New'</span>)</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">          path: <span class="string">'hot'</span>,</span><br><span class="line">          component: <span class="function"><span class="params">()</span> =&gt;</span> <span class="keyword">import</span>(<span class="string">'@/components/Hot'</span>)</span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      path: <span class="string">'/article/:id'</span>,</span><br><span class="line">      component: Article</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>预渲染的单页应用路由需要使用 History 模式而不是 Hash 模式。原因很简单，Hash 不会带到服务器，路由信息会丢失。vue-router 启用 History 模式参考<a href="https://router.vuejs.org/zh-cn/essentials/history-mode.html" target="_blank" rel="noopener">这里</a>。</p>
+<p>History 模式需要后台配置支持，最简单的是通过 nginx 配置 try_files 指令。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">location / &#123;</span><br><span class="line">  try_files $uri $uri/ /index.html;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="没有配置预渲染前"><a href="#没有配置预渲染前" class="headerlink" title="没有配置预渲染前"></a>没有配置预渲染前</h3><p>配置完成后执行构建 <code>npm run build</code>，根据 nginx 配置，现在无论访问哪个路由都会返回 dist/index.html。</p>
+<p>访问 / 路由。</p>
+<p><img src="network.jpg" alt=""></p>
+<p>可以看到，在 Fast 3G 网络下，首屏可见时间是 4.34s，页面至少在加载下面文件后才能被看到。</p>
+<ol>
+<li><strong>html</strong></li>
+<li><strong>app.css</strong> - 样式</li>
+<li><strong>manifest.js</strong> - webpack manifest</li>
+<li><strong>vendor.js</strong> - 第三方库</li>
+<li><strong>app.js</strong> - 业务逻辑</li>
+<li><strong>0.js</strong> - 路由分包文件</li>
+</ol>
+<p>其中 vendor 文件包含了引用的第三方库，文件规模较大。加载文件多，增加了白屏时间。所以，最有效的优化方案是减少首屏依赖文件。这里开始配置预渲染。</p>
+<h3 id="预渲染配置"><a href="#预渲染配置" class="headerlink" title="预渲染配置"></a>预渲染配置</h3><p>安装 prerender-spa-plugin，安装时件略长，因为其依赖了 phantomjs，请耐心等待。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install prerender-spa-plugin --save-dev</span><br></pre></td></tr></table></figure>
+<p>我们只在生产环境中进行预渲染，修改 build/webpack.prod.conf.js，在配置插件的地方加入如下代码。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> path = <span class="built_in">require</span>(<span class="string">'path'</span>)</span><br><span class="line"><span class="keyword">var</span> PrerenderSpaPlugin = <span class="built_in">require</span>(<span class="string">'prerender-spa-plugin'</span>)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  plugins: [</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="keyword">new</span> PrerenderSpaPlugin(</span><br><span class="line">      <span class="comment">// 输出目录的绝对路径</span></span><br><span class="line">      path.join(__dirname, <span class="string">'../dist'</span>),</span><br><span class="line">      <span class="comment">// 预渲染的路由</span></span><br><span class="line">      [ <span class="string">'/new'</span>, <span class="string">'/hot'</span> ]</span><br><span class="line">    )</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实例化 PrerenderSpaPlugin 需要至少两个参数，第一个参数是单页应用的输出目录，第二个参数指定预渲染的路由，这里执行了两个路由 <code>/new</code> 和 <code>/hot</code>。执行构建 <code>npm run build</code>。</p>
+<h3 id="预渲染效果"><a href="#预渲染效果" class="headerlink" title="预渲染效果"></a>预渲染效果</h3><p>访问 <code>/new</code> 路由。</p>
+<p><img src="prerender-network.jpg" alt=""></p>
+<p>同样在 Fast 3G 网络下，首屏可见时间缩短至 2.30s。事实上，只要加载 html 和 app.css 文件，页面内容就能看到了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">dist</span><br><span class="line">│  index.html</span><br><span class="line">│  </span><br><span class="line">├─hot</span><br><span class="line">│      index.html</span><br><span class="line">│      </span><br><span class="line">├─new</span><br><span class="line">│      index.html</span><br><span class="line">│      </span><br><span class="line">└─static</span><br></pre></td></tr></table></figure>
+<p>对比构建完成目录，可以发现预渲染的目录多了两个文件 <code>new/index.html</code>, <code>hot/index.html</code>。</p>
+<p>查看 <code>new/index.html</code></p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE html&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"utf-8"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">"viewport"</span> <span class="attr">content</span>=<span class="string">"width=device-width,initial-scale=1"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">title</span>&gt;</span>vue-prerender-demo<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"https://fonts.googleapis.com/icon?family=Material+Icons"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">link</span> <span class="attr">href</span>=<span class="string">"/static/css/app.23611ac69a9fa48640e3bad8ceeab7bf.css"</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">"text/javascript"</span> <span class="attr">charset</span>=<span class="string">"utf-8"</span> <span class="attr">async</span>=<span class="string">""</span> <span class="attr">src</span>=<span class="string">"/static/js/0.41194d76e86bbf547b16.js"</span>&gt;</span><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">div</span> <span class="attr">id</span>=<span class="string">"app"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"mu-appbar mu-paper-1"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"left"</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"mu-icon material-icons"</span>&gt;</span>home<span class="tag">&lt;/<span class="name">i</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"mu-appbar-title"</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">span</span>&gt;</span>新闻<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"right"</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">      ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">"text/javascript"</span> <span class="attr">src</span>=<span class="string">"/static/js/manifest.4410c20c250c68dac5bc.js"</span>&gt;</span><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">"text/javascript"</span> <span class="attr">src</span>=<span class="string">"/static/js/vendor.d55f477df6e96ccceb5c.js"</span>&gt;</span><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">"text/javascript"</span> <span class="attr">src</span>=<span class="string">"/static/js/app.f199467bd568ee8a197a.js"</span>&gt;</span><span class="undefined"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>相比 index.html, new/index.html 中的 <code>&lt;div id=&quot;app&quot;&gt;&lt;/div&gt;</code> 是有内容的，且 <code>&lt;head&gt;&lt;/head&gt;</code> 中多了当前路由分包的 js 文件。其余部分跟 index.html 一样。虽然有多个 html，但从 /new 跳转到其他路由时，还是单页内跳转的，不会有新的 html 请求。</p>
+<p>根据上面配置的 nginx 规则，路由对应的返回文件分别是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/ -&gt; index.html</span><br><span class="line">/new -&gt; new/index.html</span><br><span class="line">/hot -&gt; hot/index.html</span><br><span class="line">/article/:id -&gt; index.html</span><br></pre></td></tr></table></figure>
+<p>其中，<strong>/new</strong> 和 <strong>/hot</strong> 路由返回的 html 包含了对应路由的内容，从而实现预渲染。没有配置预渲染的路由跟原来一样，还是访问 /index.html，请求脚本，动态渲染。</p>
+<p>预渲染达到了类似服务端渲染的效果。区别在于预渲染发生在<strong>构建时</strong>，服务端渲染发生在服务器<strong>处理请求时</strong>。</p>
+<h3 id="prerender-spa-plugin-原理"><a href="#prerender-spa-plugin-原理" class="headerlink" title="prerender-spa-plugin 原理"></a>prerender-spa-plugin 原理</h3><p>那么 prerender-spa-plugin 是如何做到将运行时的 html 打包到文件中的呢？原理很简单，就是在 webpack 构建阶段的最后，在本地启动一个 phantomjs，访问配置了预渲染的路由，再将 phantomjs 中渲染的页面输出到 html 文件中，并建立路由对应的目录。</p>
+<p><img src="principle.jpg" alt=""></p>
+<p>查看 prerender-spa-plugin 源码 <a href="https://github.com/chrisvfritz/prerender-spa-plugin/blob/master/lib/phantom-page-render.js#L89-L100" target="_blank" rel="noopener">prerender-spa-plugin/lib/phantom-page-render.js</a>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 打开页面</span></span><br><span class="line">page.open(url, <span class="function"><span class="keyword">function</span> (<span class="params">status</span>) </span>&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 没有设置捕获钩子时，在脚本执行完捕获</span></span><br><span class="line">  <span class="keyword">if</span> (</span><br><span class="line">    !options.captureAfterDocumentEvent &amp;&amp;</span><br><span class="line">    !options.captureAfterElementExists &amp;&amp;</span><br><span class="line">    !options.captureAfterTime</span><br><span class="line">  ) &#123;</span><br><span class="line">    <span class="comment">// 拼接 html</span></span><br><span class="line">    <span class="keyword">var</span> html = page.evaluate(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">      <span class="keyword">var</span> doctype = <span class="keyword">new</span> <span class="built_in">window</span>.XMLSerializer().serializeToString(<span class="built_in">document</span>.doctype)</span><br><span class="line">      <span class="keyword">var</span> outerHTML = <span class="built_in">document</span>.documentElement.outerHTML</span><br><span class="line">      <span class="keyword">return</span> doctype + outerHTML</span><br><span class="line">    &#125;)</span><br><span class="line">    returnResult(html) <span class="comment">// 捕获输出</span></span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h3 id="最佳实践"><a href="#最佳实践" class="headerlink" title="最佳实践"></a>最佳实践</h3><h4 id="指定捕获钩子"><a href="#指定捕获钩子" class="headerlink" title="指定捕获钩子"></a>指定捕获钩子</h4><p>默认情况下 html 会在脚本执行完被捕获并输出。你也可以指定一些钩子，html 将会在特定时机被捕获。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> path = <span class="built_in">require</span>(<span class="string">'path'</span>)</span><br><span class="line"><span class="keyword">var</span> PrerenderSpaPlugin = <span class="built_in">require</span>(<span class="string">'prerender-spa-plugin'</span>)</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">  plugins: [</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="keyword">new</span> PrerenderSpaPlugin(</span><br><span class="line">      path.join(__dirname, <span class="string">'../dist'</span>),</span><br><span class="line">      [ <span class="string">'/new'</span>, <span class="string">'/hot'</span> ],</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="comment">// 监听到自定事件时捕获</span></span><br><span class="line">        <span class="comment">// document.dispatchEvent(new Event('custom-post-render-event'))</span></span><br><span class="line">        captureAfterDocumentEvent: <span class="string">'custom-post-render-event'</span>,</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 查询到指定元素时捕获</span></span><br><span class="line">        captureAfterElementExists: <span class="string">'#content'</span>,</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 定时捕获</span></span><br><span class="line">        captureAfterTime: <span class="number">5000</span></span><br><span class="line">      &#125;</span><br><span class="line">    )</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="预渲染骨架屏"><a href="#预渲染骨架屏" class="headerlink" title="预渲染骨架屏"></a>预渲染骨架屏</h4><p>本文实例中更多是变化的数据，时效性要求比较高，不太适合预渲染的场景。如果想用预渲染来减少白屏时间，让页面反馈更及时的话，可以预渲染骨架屏。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">template</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">div</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">new-list</span> <span class="attr">v-if</span>=<span class="string">"news.length &gt; 0"</span>&gt;</span><span class="tag">&lt;/<span class="name">new-list</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">new-list-skeleton</span>&gt;</span><span class="tag">&lt;/<span class="name">new-list-skeleton</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">template</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>请求 news 数据需要一定时间，所以插件在脚本执行完捕获的一般就是骨架屏。如果你想更灵活地指定捕获时机，可以使用自定义事件钩子，在组件挂载且请求数据前捕获。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  mounted () &#123;</span><br><span class="line">    <span class="built_in">document</span>.dispatchEvent(<span class="keyword">new</span> Event(<span class="string">'sketelon-render-event'</span>))</span><br><span class="line">    fetchNews()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="skeleton.jpg" alt=""></p>
+<p>访问页面时，用户首先看到预渲染的骨架屏（左图），等待 js 加载完成后，再拉取数据渲染出正确的内容。</p>
+<h4 id="代理完整路径"><a href="#代理完整路径" class="headerlink" title="代理完整路径"></a>代理完整路径</h4><p>如果你配置了引用资源链接为带域名的完整路径。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// config/index.js</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">module</span>.exports = &#123;</span><br><span class="line">  build: &#123;</span><br><span class="line">    ...</span><br><span class="line">    assetsPublicPath: <span class="string">'//www.example.com/'</span></span><br><span class="line">  &#125;,</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么构建时需要将域名代理到本地，否则 prerender-spa-plugin 捕获的将会是线上的代码。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1 www.example.com</span><br></pre></td></tr></table></figure>
+<h4 id="预渲染根路由"><a href="#预渲染根路由" class="headerlink" title="预渲染根路由"></a>预渲染根路由</h4><p>通常情况下，动态路由如 /users/:id 不会配置预渲染，因为你没法枚举出所有的 User ID。访问动态路由时，服务器会返回根路由 / 的 html，所以根路由也不适合做预渲染。但根路由往往是一个网站的首页，是访问量最大的一个路由。通过一些 nginx 可以解决这个问题。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">location = / &#123;</span><br><span class="line">  try_files /home/index.html /index.html;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location / &#123;</span><br><span class="line">  try_files $uri $uri/ /index.html;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>用户访问 / 路由，实际上是访问了 /home/index.html，用 router 中配置的 /home 作为首页。/index.html 可以作为其他没有匹配到路由的响应。</p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>预渲染是实现成本较低，效果提升明显的性能优化方案。预渲染有它适合的场景，当你的页面内容变化不大，又想让它更快地呈现给用户时，试试预渲染吧。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Prerender/" rel="tag"># Prerender</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/10/21/Improve-Vue-Runtime-Performance/" rel="prev" title="Cookbook：优化 Vue 组件的运行时性能">
+                Cookbook：优化 Vue 组件的运行时性能 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Sun</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">标签</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务端渲染与预渲染"><span class="nav-number">2.</span> <span class="nav-text">服务端渲染与预渲染</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#一些概念"><span class="nav-number">2.1.</span> <span class="nav-text">一些概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#共同点"><span class="nav-number">2.2.</span> <span class="nav-text">共同点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不适合的场景"><span class="nav-number">2.3.</span> <span class="nav-text">不适合的场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Prerender-SPA-Plugin"><span class="nav-number">3.</span> <span class="nav-text">Prerender SPA Plugin</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#生成项目"><span class="nav-number">3.1.</span> <span class="nav-text">生成项目</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#路由配置"><span class="nav-number">3.2.</span> <span class="nav-text">路由配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#没有配置预渲染前"><span class="nav-number">3.3.</span> <span class="nav-text">没有配置预渲染前</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#预渲染配置"><span class="nav-number">3.4.</span> <span class="nav-text">预渲染配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#预渲染效果"><span class="nav-number">3.5.</span> <span class="nav-text">预渲染效果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#prerender-spa-plugin-原理"><span class="nav-number">3.6.</span> <span class="nav-text">prerender-spa-plugin 原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#最佳实践"><span class="nav-number">3.7.</span> <span class="nav-text">最佳实践</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#指定捕获钩子"><span class="nav-number">3.7.1.</span> <span class="nav-text">指定捕获钩子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#预渲染骨架屏"><span class="nav-number">3.7.2.</span> <span class="nav-text">预渲染骨架屏</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#代理完整路径"><span class="nav-number">3.7.3.</span> <span class="nav-text">代理完整路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#预渲染根路由"><span class="nav-number">3.7.4.</span> <span class="nav-text">预渲染根路由</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结语"><span class="nav-number">4.</span> <span class="nav-text">结语</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Sun</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Mist</a> v6.4.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+	
+    
+
+    
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.4.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.4.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.4.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.4.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.4.2"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
