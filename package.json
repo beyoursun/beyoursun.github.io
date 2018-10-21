@@ -6,6 +6,7 @@
     "version": "3.8.0"
   },
   "scripts": {
+    "new": "hexo new",
     "server": "hexo server",
     "deploy": "hexo d -g"
   },
