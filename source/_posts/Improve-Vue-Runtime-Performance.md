@@ -254,16 +254,36 @@ Chrome 的 Performance 面板可以录制一段时间内的 js 执行细节及�
 </li>
 ```
 
+`v-if` 在 render 函数中表现为一个三目表达式：
+
+```js
+visible ? h('li') : this._e() // this._e() 生成一个注释节点
+```
+
+即 `v-if` 只是减少每次遍历的时间，并不能减少遍历的次数。且 [Vue.js 风格指南](https://cn.vuejs.org/v2/style-guide/#避免-v-if-和-v-for-用在一起-必要)中明确指出不要把 `v-if` 和 `v-for` 同时用在同一个元素上，因为这可能会导致不必要的渲染。
+
+我们可以更换为在一个可见节点的计算属性上进行遍历：
+
+```html
+<li
+  v-for="node in nodes"
+  v-if="status[node.key].visible"
+  :key="node.key"
+  class="tree-node"
+  :style="{ 'padding-left': `${node.level * 16}px` }"
+>
+  ...
+</li>
+```
+
 优化后的性能耗时如下。
 
 ```
-first rendering: 216.407958984375ms
-expanded change: 190.23974609375ms
+first rendering: 194.7890625ms
+expanded change: 204.01904296875ms
 ```
 
 你可以通过[改进后的示例 (Demo2)](https://codesandbox.io/s/github/beyoursun/improve-vue-runtime-performance) 来观察组件的性能损耗，相比优化前有很大的提升。
-
-展开或折叠节点时，`v-if` 指令会导致频繁的组件创建和销毁，于是我尝试使用 [`<keep-alive>`](https://cn.vuejs.org/v2/api/#keep-alive) 去给组件做缓存，但效果不是很明显。也许因为 `<li>` 的渲染太过简单。这里不再深究。
 
 ### 双向绑定
 
